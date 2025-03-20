@@ -10,34 +10,42 @@ from src.algorithms.dijkstra import dijkstra
 def main():
     pygame.init()
     
-    # Constants
-    WINDOW_WIDTH = 1200
-    WINDOW_HEIGHT = 600
-    GRID_SIZE = 30
-    TILE_SIZE = 20
+    # Enhanced constants
+    WINDOW_WIDTH = 1600
+    WINDOW_HEIGHT = 800
+    GRID_SIZE = 25
+    TILE_SIZE = 25
+    PADDING = 40
     
-    # Create window and screen
+    # Create window with better resolution
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption("Pathfinding Algorithms Visualization")
     clock = pygame.time.Clock()
     
-    # Create grids
+    # Create grids with spacing
     grids = [Grid(GRID_SIZE, GRID_SIZE, TILE_SIZE) for _ in range(4)]
-    algorithm_names = ["BFS", "DFS", "A*", "Dijkstra"]
+    algorithm_names = ["Breadth-First Search", "Depth-First Search", "A* Algorithm", "Dijkstra's Algorithm"]
     algorithms = [bfs, dfs, astar, dijkstra]
     
-    # Generate maze
-    maze = generate_maze(GRID_SIZE, GRID_SIZE)
+    # Generate maze with lower wall density
+    maze = generate_maze(GRID_SIZE, GRID_SIZE, wall_density=0.25)
     for grid in grids:
         for i in range(GRID_SIZE):
             for j in range(GRID_SIZE):
                 grid.set_cell(i, j, maze[i][j])
     
+    # Font setup
+    font = pygame.font.Font(None, 36)
+    title_font = pygame.font.Font(None, 48)
+    
     running = True
     start_point = None
     end_point = None
+    animation_speed = 30  # Controls visualization speed
     
     while running:
+        screen.fill((70, 70, 70))  # Dark background
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -59,29 +67,42 @@ def main():
                             
                             # Run algorithms
                             for i, (grid, algo) in enumerate(zip(grids, algorithms)):
-                                path = algo(maze, start_point, end_point)
-                                grid.update_path(path)
+                                animation_steps = algo(maze, start_point, end_point)
+                                for step in animation_steps:
+                                    grid.add_to_animation(*step)
                                 
                             start_point = None
                             end_point = None
         
-        # Draw grids
-        screen.fill((128, 128, 128))
+        # Draw grids with titles and borders
         for i, grid in enumerate(grids):
-            # Create surface for each grid
-            surface = pygame.Surface((WINDOW_WIDTH // 4, WINDOW_HEIGHT))
+            # Calculate grid position
+            x_offset = (i % 2) * (WINDOW_WIDTH // 2) + PADDING
+            y_offset = (i // 2) * (WINDOW_HEIGHT // 2) + PADDING
+            
+            # Draw border
+            border_rect = pygame.Rect(
+                x_offset - 5,
+                y_offset - 40,
+                (WINDOW_WIDTH // 2) - PADDING * 2 + 10,
+                (WINDOW_HEIGHT // 2) - PADDING * 2 + 45
+            )
+            pygame.draw.rect(screen, (100, 100, 100), border_rect, border_radius=10)
+            
+            # Create and draw grid surface
+            surface = pygame.Surface(((WINDOW_WIDTH // 2) - PADDING * 2, (WINDOW_HEIGHT // 2) - PADDING * 2))
             grid.draw_grid(surface)
+            screen.blit(surface, (x_offset, y_offset))
             
             # Draw algorithm name
-            font = pygame.font.Font(None, 36)
-            text = font.render(algorithm_names[i], True, (255, 255, 255))
-            surface.blit(text, (10, 10))
+            text = title_font.render(algorithm_names[i], True, (255, 255, 255))
+            screen.blit(text, (x_offset, y_offset - 35))
             
-            # Draw grid surface
-            screen.blit(surface, (i * (WINDOW_WIDTH // 4), 0))
+            # Animate next step
+            grid.animate_step()
         
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(animation_speed)
     
     pygame.quit()
 

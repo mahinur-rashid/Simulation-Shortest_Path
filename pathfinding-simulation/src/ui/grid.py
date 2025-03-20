@@ -8,15 +8,17 @@ class Grid:
         self.grid = [[0 for _ in range(cols)] for _ in range(rows)]
         self.start = None
         self.end = None
+        self.animation_queue = []
         
-        # Define colors
+        # Enhanced colors for better visualization
         self.COLORS = {
-            0: (255, 255, 255),  # Empty cell (white)
-            1: (0, 0, 0),        # Wall (black)
-            2: (0, 255, 0),      # Start (green)
-            3: (255, 0, 0),      # End (red)
-            4: (0, 0, 255),      # Path (blue)
-            5: (255, 255, 0)     # Visited (yellow)
+            0: (240, 240, 240),   # Empty cell (light gray)
+            1: (40, 40, 40),      # Wall (dark gray)
+            2: (46, 204, 113),    # Start (green)
+            3: (231, 76, 60),     # End (red)
+            4: (52, 152, 219),    # Path (blue)
+            5: (241, 196, 15),    # Visited (yellow)
+            6: (155, 89, 182)     # Currently visiting (purple)
         }
 
     def set_start(self, row, col):
@@ -36,21 +38,28 @@ class Grid:
         if 0 <= row < self.rows and 0 <= col < self.cols:
             self.grid[row][col] = value
 
-    def draw_grid(self, surface):
-        surface.fill((128, 128, 128))  # Gray background
-        for row in range(self.rows):
-            for col in range(self.cols):
-                color = self.COLORS[self.grid[row][col]]
-                pygame.draw.rect(surface, color, 
-                               (col * self.tile_size, row * self.tile_size, 
-                                self.tile_size - 1, self.tile_size - 1))
+    def add_to_animation(self, row, col, value):
+        self.animation_queue.append((row, col, value))
 
-    def update_path(self, path, visited=None):
-        if visited:
-            for pos in visited:
-                if pos != self.start and pos != self.end:
-                    self.set_cell(pos[0], pos[1], 5)
-        if path:
-            for pos in path:
-                if pos != self.start and pos != self.end:
-                    self.set_cell(pos[0], pos[1], 4)
+    def animate_step(self):
+        if self.animation_queue:
+            row, col, value = self.animation_queue.pop(0)
+            self.set_cell(row, col, value)
+            return True
+        return False
+
+    def draw_grid(self, surface):
+        # Draw background
+        surface.fill((200, 200, 200))  # Light gray background
+        
+        # Draw cells with rounded corners
+        for row in range(self.rows):
+            for col in range (self.cols):
+                color = self.COLORS[self.grid[row][col]]
+                rect = pygame.Rect(
+                    col * self.tile_size + 1,
+                    row * self.tile_size + 1,
+                    self.tile_size - 2,
+                    self.tile_size - 2
+                )
+                pygame.draw.rect(surface, color, rect, border_radius=3)

@@ -6,12 +6,16 @@ def dijkstra(maze, start, end):
     distances = {start: 0}
     visited = {start: None}
     pq = [(0, start)]
+    path = []
+    animation_steps = []
     
     while pq:
         current_dist, current = heapq.heappop(pq)
+        animation_steps.append((current[0], current[1], 6))  # Currently visiting
         
         if current == end:
-            return reconstruct_path(visited, end)
+            path = reconstruct_path(visited, end)
+            break
             
         for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
             next_x, next_y = current[0] + dx, current[1] + dy
@@ -24,5 +28,10 @@ def dijkstra(maze, start, end):
                     distances[next_pos] = new_dist
                     visited[next_pos] = current
                     heapq.heappush(pq, (new_dist, next_pos))
-                    
-    return []  # No path found
+                    animation_steps.append((next_x, next_y, 5))  # Visited
+    
+    # Add path to animation
+    for pos in path:
+        animation_steps.append((pos[0], pos[1], 4))  # Path
+        
+    return animation_steps
