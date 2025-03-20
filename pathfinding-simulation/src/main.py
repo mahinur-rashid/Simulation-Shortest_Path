@@ -7,19 +7,48 @@ from src.algorithms.dfs import dfs
 from src.algorithms.astar import astar
 from src.algorithms.dijkstra import dijkstra
 
+# Move constants to global scope
+WINDOW_WIDTH = 1600
+WINDOW_HEIGHT = 900  # Increased height for controls
+GRID_SIZE = 25
+TILE_SIZE = 25
+PADDING = 40
+
 def create_button(text, font, color, bg_color):
     text_surface = font.render(text, True, color)
     return text_surface, text_surface.get_rect()
 
+def get_grid_position(mouse_x, mouse_y):
+    # Calculate which quadrant the click is in
+    quadrant_width = WINDOW_WIDTH // 2
+    quadrant_height = (WINDOW_HEIGHT - 100) // 2  # Adjust for bottom controls
+    
+    quadrant_x = mouse_x // quadrant_width
+    quadrant_y = mouse_y // quadrant_height
+    
+    if quadrant_y >= 2:  # Click is in the control area
+        return None
+        
+    # Calculate relative position within the grid
+    local_x = mouse_x % quadrant_width
+    local_y = mouse_y % quadrant_height
+    
+    # Account for padding and borders
+    effective_x = local_x - PADDING
+    effective_y = local_y - PADDING
+    
+    if effective_x < 0 or effective_y < 0:
+        return None
+        
+    grid_x = effective_y // TILE_SIZE
+    grid_y = effective_x // TILE_SIZE
+    
+    if 0 <= grid_x < GRID_SIZE and 0 <= grid_y < GRID_SIZE:
+        return (grid_x, grid_y)
+    return None
+
 def main():
     pygame.init()
-    
-    # Enhanced constants
-    WINDOW_WIDTH = 1600
-    WINDOW_HEIGHT = 900  # Increased height for controls
-    GRID_SIZE = 25
-    TILE_SIZE = 25
-    PADDING = 40
     
     # Create window with better resolution
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -53,7 +82,7 @@ def main():
     animation_speed = 60  # Increased animation speed
     
     # Status message
-    status_message = "Click to set start point"
+    status_message = "Click to set START point (marked in GREEN)"
     
     while running:
         screen.fill((50, 50, 50))  # Darker background
@@ -69,23 +98,23 @@ def main():
                     grids, maze = init_simulation()
                     start_point = None
                     end_point = None
-                    status_message = "Click to set start point"
+                    status_message = "Click to set START point (marked in GREEN)"
                     continue
                 
-                grid_x = y // TILE_SIZE
-                grid_y = (x % (WINDOW_WIDTH // 4)) // TILE_SIZE
-                
-                if 0 <= grid_x < GRID_SIZE and 0 <= grid_y < GRID_SIZE:
+                grid_pos = get_grid_position(x, y)
+                if grid_pos:
+                    grid_x, grid_y = grid_pos
+                    
                     if maze[grid_x][grid_y] == 0:  # Valid cell
                         if start_point is None:
                             start_point = (grid_x, grid_y)
                             for grid in grids:
-                                grid.set_cell(grid_x, grid_y, 2)
-                            status_message = "Click to set end point"
-                        elif end_point is None:
+                                grid.set_cell(grid_x, grid_y, 2)  # Green for start
+                            status_message = "Click to set END point (marked in RED)"
+                        elif end_point is None and (grid_x, grid_y) != start_point:
                             end_point = (grid_x, grid_y)
                             for grid in grids:
-                                grid.set_cell(grid_x, grid_y, 3)
+                                grid.set_cell(grid_x, grid_y, 3)  # Red for end
                             status_message = "Running algorithms..."
                             
                             # Run algorithms
@@ -94,8 +123,28 @@ def main():
                                 for step in animation_steps:
                                     grid.add_to_animation(*step)
                             
-                            status_message = "Click reload to start over"
+                            status_message = "Click RELOAD to start over"
+
+        # Update hover effect
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        grid_pos = get_grid_position(mouse_x, mouse_y)
         
+        # Draw hover indicator
+        if grid_pos and not end_point:
+            hover_x, hover_y = grid_pos
+            if maze[hover_x][hover_y] == 0:
+                for i, grid in enumerate(grids):
+                    x_offset = (i % 2) * (WINDOW_WIDTH // 2) + PADDING
+                    y_offset = (i // 2) * (WINDOW_HEIGHT // 2) + PADDING
+                    hover_rect = pygame.Rect(
+                        x_offset + hover_y * TILE_SIZE,
+                        y_offset + hover_x * TILE_SIZE,
+                        TILE_SIZE,
+                        TILE_SIZE
+                    )
+                    color = (0, 255, 0) if start_point is None else (255, 0, 0)
+                    pygame.draw.rect(screen, color, hover_rect, 2)
+
         # Draw grids with titles and borders
         for i, grid in enumerate(grids):
             x_offset = (i % 2) * (WINDOW_WIDTH // 2) + PADDING
@@ -131,8 +180,10 @@ def main():
         screen.blit(reload_button_text, reload_button_rect)
         
         # Draw status message
-        status_text = font.render(status_message, True, (200, 200, 200))
-        status_rect = status_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT - 90))
+        status_text = font.render(status_message, True, (255, 255, 255))
+        status_bg = pygame.Rect(0, WINDOW_HEIGHT - 130, WINDOW_WIDTH, 40)
+        pygame.draw.rect(screen, (60, 60, 60), status_bg)
+        status_rect = status_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT - 110))
         screen.blit(status_text, status_rect)
         
         pygame.display.flip()
